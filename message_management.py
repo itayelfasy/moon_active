@@ -1,51 +1,52 @@
-import asyncio
 import time
-import threading
-import redis
 from datetime import datetime
+
+import redis
+from fastapi import HTTPException
+
 from db_handler.redis_handler import RedisHandler
-import parser
+from time_parser import datetime_to_timestamp, timestamp_to_string_datetime
 
 
 class MessageManagement:
+    """
+    this class mange all message actions
+    """
+
     def __init__(self):
-        self.redis_client = redis.StrictRedis(host='localhost', port=6379)
-        self.scheduler_key = 'management_messages'
+        self.redis_handler = RedisHandler()
 
-    def echoAtTime(self, scheduled_time: str, message: str):
+    def echo_at_time(self, sender_time: str, message: str):
+        """
+        this func allows you to schedule a message to be sent at a specific time
+        in the future.
+        this data save in redis
+
+        :param sender_time: time to send the message
+        :param message: message to send
+        :return: TRUE if this message insert to redis else Fasle
+        """
         current_time = time.time()
-        scheduled_time_timestamp = datetime_to_timestamp(scheduled_time)
+        scheduled_time_timestamp = datetime_to_timestamp(sender_time)
         delay = scheduled_time_timestamp - current_time
-
         if delay <= 0:
-            print(f"Error: Scheduled time must be in the future.")
-            return
-
-        self.redis_client.zadd(self.scheduler_key, {message: scheduled_time_timestamp})
+            raise HTTPException(status_code=400, detail="Error: Scheduled time must be in the future")
+        return self.redis_handler.add_message(message, scheduled_time_timestamp)
 
     def check_scheduled_messages(self):
-        print("start")
+        """
+        this func run at the background of the serves and print
+        every message that should be print
+        """
         while True:
-            current_time = time.time()
-            messages = self.redis_client.zrangebyscore(self.scheduler_key, 0, current_time)
+
+            messages = self.redis_handler.get_current_messages()
+
             if messages:
-                for message in messages:
-                    print(str(datetime.now()) + message.decode())
-                    self.redis_client.zrem(self.scheduler_key, message)
-            time.sleep(1)
-
-
-def datetime_to_timestamp(date_time_str):
-    try:
-        # Parse the string into a datetime object
-        dt_object = datetime.strptime(date_time_str, "%Y-%m-%d %H:%M:%S")
-        # Convert datetime object to timestamp using the timestamp() method
-        timestamp = dt_object.timestamp()
-        return timestamp
-    except ValueError:
-        raise ValueError("Invalid date-time format. Expected format: 'YYYY-MM-DD HH:MM:SS'")
-
-# if __name__ == '__main__':
-#     messege = MessageManagement()
-#     messege.check_scheduled_messages()
-#     messege.echoAtTime('2023-07-17 17:31:00','send agin')
+                for message_tuple in messages:
+                    message = message_tuple[0].decode()
+                    time_to_send = timestamp_to_string_datetime(message_tuple[1])
+                    print(message)
+                    print(f"time the message should be sent: {time_to_send},"
+                          f" time the message sent: {str(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))} ")
+                    self.redis_handler.delete_message(message)

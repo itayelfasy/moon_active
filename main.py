@@ -1,20 +1,18 @@
-import asyncio
-import logging
-from fastapi import FastAPI, BackgroundTasks
-from typing import Dict
 import threading
-from message_management import MessageManagement
+from typing import Dict
+
 import uvicorn
+from fastapi import FastAPI
+
+from message_management import MessageManagement
 
 app = FastAPI()
+management = MessageManagement()
 
 
-# @app.on_event("startup")
-# async def startup_event():
-#     management = MessageManagement()
-#     message_thred = threading.Thread(target=management.check_scheduled_messages())
-#     # message_thred.daemon = True
-#     message_thred.start()
+class BackgroundTask(threading.Thread):
+    def run(self) -> None:
+        management.check_scheduled_messages()
 
 
 @app.get('/')
@@ -24,14 +22,16 @@ def root():
 
 @app.post('/echoAtTime')
 async def add_message(value: Dict[str, str]):
-    management = MessageManagement()
     message_time = value.get('message_time')
     message = value.get('message')
-    management.echoAtTime(message_time, message)
-    return "hii"
-
+    response = management.echo_at_time(message_time, message)
+    if response:
+        return "message insert success"
+    else:
+        return "message insert fail"
 
 
 if __name__ == '__main__':
+    task = BackgroundTask()
+    task.start()
     uvicorn.run(app, host='0.0.0.0', port=8080)
-
