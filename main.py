@@ -21,8 +21,8 @@ def root():
 
 
 @app.post('/echoAtTime')
-async def add_message_to_redis(value: Dict[str, str]):
-    return management.add_message_to_redis(value)
+async def add_message_to_redis(message_details: Dict[str, str]):
+    return management.add_message_to_redis(message_details)
 
 
 if __name__ == '__main__':
