@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 
-import redis
+from typing import Dict, Any
 from fastapi import HTTPException
 
 from db_handler.redis_handler import RedisHandler
@@ -15,6 +15,18 @@ class MessageManagement:
 
     def __init__(self):
         self.redis_handler = RedisHandler()
+
+    def add_message_to_redis(self, value: Dict[str, Any]):
+        """this func get message details and insert to redis"""
+        message_time = value.get('message_time')
+        message = value.get('message')
+        if not message or not message_time:
+            raise HTTPException(status_code=400, detail="Error: message or message_time are empty")
+        response = self.echo_at_time(message_time, message)
+        if response:
+            return "message insert success"
+        else:
+            return "message insert fail"
 
     def echo_at_time(self, sender_time: str, message: str):
         """

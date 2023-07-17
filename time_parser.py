@@ -5,7 +5,7 @@ from fastapi import HTTPException
 
 
 def datetime_to_timestamp(datetime_str: str):
-    "this func parse datetime string to timestamp"""
+    """this func parse datetime string to timestamp"""
     try:
 
         dt_object = maya.parse(datetime_str, "Israel").datetime()
@@ -16,5 +16,6 @@ def datetime_to_timestamp(datetime_str: str):
 
 
 def timestamp_to_string_datetime(timestamp: float):
+    """convert timestamp to string datetime template"""
     dt = datetime.fromtimestamp(timestamp)
     return dt.strftime('%Y-%m-%d %H:%M:%S')
