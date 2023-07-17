@@ -2,7 +2,7 @@ import threading
 from typing import Dict
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI,HTTPException
 
 from message_management import MessageManagement
 
@@ -24,6 +24,8 @@ def root():
 async def add_message(value: Dict[str, str]):
     message_time = value.get('message_time')
     message = value.get('message')
+    if not message or not message_time:
+        raise HTTPException(status_code=400, detail="Error: message or message_time are empty")
     response = management.echo_at_time(message_time, message)
     if response:
         return "message insert success"
